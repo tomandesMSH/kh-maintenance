@@ -6,7 +6,7 @@ nenasazuje (`.vercelignore`), spouští se u tebe na počítači.
 
 ```bash
 cd tools/vercel-domain
-cp .env.example .env              # vyplň VERCEL_TOKEN a CUSTOM_DOMAIN (případně VERCEL_TEAM_ID)
+cp config.example.json config.json   # vyplň vercelToken (a vercelTeamId, je-li to tým)
 node vercel-domain.mjs gui        # okno v prohlížeči: stav + tlačítka
 node vercel-domain.mjs status     # kde doména běží, jestli je produkce pozastavená
 node vercel-domain.mjs down       # na údržbu (alias: maintenance); --pause pozastaví i produkci
@@ -20,5 +20,8 @@ node vercel-domain.mjs up         # zpět na produkci (alias: live), pozastaveno
 - Okno (`gui`) běží jen na `127.0.0.1` s náhodným klíčem v adrese, takže doménu nepřepne žádná
   jiná stránka. Přepnutí chce dvě kliknutí.
 
+**Nastavení:** `config.json` (vzor `config.example.json`). Jde to i přes `.env` (vzor `.env.example`)
+nebo proměnné prostředí; přednost mají proměnné prostředí, pak `config.json`, pak `.env`.
+
 **Token:** Vercel → Account Settings → Tokens → Create Token (scope: tým, kam projekty patří).
-Patří jen do `.env`, ten je v `.gitignore`.
+Patří jen do `config.json` / `.env` – oba jsou v `.gitignore`.

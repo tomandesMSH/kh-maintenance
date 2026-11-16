@@ -32,6 +32,34 @@ function loadEnv(path) {
   }
 }
 
+// config.json: the same settings as .env, for filling in by hand.
+const JSON_KEYS = {
+  vercelToken: 'VERCEL_TOKEN',
+  vercelTeamId: 'VERCEL_TEAM_ID',
+  customDomain: 'CUSTOM_DOMAIN',
+  prodProject: 'PROD_PROJECT',
+  maintProject: 'MAINT_PROJECT',
+}
+const CONFIG_FILE = join(HERE, 'config.json')
+
+function loadJson(path) {
+  if (!existsSync(path)) return
+  let data
+  try {
+    data = JSON.parse(readFileSync(path, 'utf8').replace(/^﻿/, ''))
+  } catch (err) {
+    console.error(`✗ config.json není platný JSON: ${err.message}`)
+    console.error('  Hlídej uvozovky kolem hodnot a čárky mezi řádky (za posledním žádná).')
+    process.exit(2)
+  }
+  for (const [key, name] of Object.entries(JSON_KEYS)) {
+    const value = data?.[key]
+    if (typeof value === 'string' && value.trim() && process.env[name] === undefined) process.env[name] = value.trim()
+  }
+}
+
+// Přednost: proměnné prostředí, pak config.json, pak .env.
+loadJson(CONFIG_FILE)
 loadEnv(join(HERE, '.env'))
 
 // VERCEL_API_URL jen pro testy proti falešnému serveru.
@@ -366,7 +394,7 @@ function usage() {
   ${c.cyan('maintenance')} | ${c.cyan('down')} [--pause]  doména na údržbovou stránku (--pause pozastaví produkci)
   ${c.cyan('live')} | ${c.cyan('up')}                  doména zpět na produkci (pozastavenou obnoví)
 
-Nastavení: ${join(HERE, '.env')} (vzor .env.example)`)
+Nastavení: ${CONFIG_FILE} (vzor config.example.json), nebo .env`)
 }
 
 async function main() {
@@ -375,7 +403,7 @@ async function main() {
 
   const missing = [!config.token && 'VERCEL_TOKEN', !config.domain && 'CUSTOM_DOMAIN'].filter(Boolean)
   if (missing.length) {
-    fail(`Chybí ${missing.join(' a ')} v .env (${join(HERE, '.env')}). Vzor je v .env.example.`)
+    fail(`Chybí ${missing.join(' a ')}. Vyplň ${CONFIG_FILE} (vzor config.example.json) nebo .env.`)
     process.exitCode = 2
     return
   }
