@@ -8,6 +8,7 @@ nenasazuje (`.vercelignore`), spouští se u tebe na počítači.
 cd tools/vercel-domain
 cp config.example.json config.json   # vyplň vercelToken (a vercelTeamId, je-li to tým)
 node vercel-domain.mjs gui        # okno v prohlížeči: stav + tlačítka
+python spustit_gui.py             # totéž na dvojklik (Windows: dvakrát klikni na spustit_gui.py)
 node vercel-domain.mjs status     # kde doména běží, jestli je produkce pozastavená
 node vercel-domain.mjs down       # na údržbu (alias: maintenance); --pause pozastaví i produkci
 node vercel-domain.mjs up         # zpět na produkci (alias: live), pozastavenou nejdřív obnoví
