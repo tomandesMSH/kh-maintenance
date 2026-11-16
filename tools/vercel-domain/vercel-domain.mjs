@@ -69,8 +69,8 @@ const config = {
   token: process.env.VERCEL_TOKEN,
   teamId: process.env.VERCEL_TEAM_ID || '',
   domain: (process.env.CUSTOM_DOMAIN || '').trim().toLowerCase(),
-  prod: process.env.PROD_PROJECT || 'keyboardheromuzio',
-  maint: process.env.MAINT_PROJECT || 'kh-maintenance-six',
+  prod: process.env.PROD_PROJECT || 'keyboardhero.muzio',
+  maint: process.env.MAINT_PROJECT || 'kh-maintenance',
 }
 
 // --- výpis: do terminálu (barevně), nebo do okna (gui) ---
@@ -250,7 +250,9 @@ function explain(err) {
   const lines = [
     ['fail', `Vercel API: ${err.message}${err.code ? ` (${err.code})` : ''}${err.status ? `, HTTP ${err.status}` : ''}`],
   ]
-  if (err.status === 401 || err.status === 403) {
+  if (err.status === 404 && err.code !== 'not_found_domain') {
+    lines.push(['warn', `Projekt nenalezen. Zkontroluj prodProject a maintProject (teď ${config.prod} a ${config.maint}) – musí to být názvy projektů z Vercelu, ne adresa nasazení. U týmu vyplň i vercelTeamId.`])
+  } else if (err.status === 401 || err.status === 403) {
     lines.push(['warn', 'Zkontroluj VERCEL_TOKEN a jestli projekty patří týmu z VERCEL_TEAM_ID.'])
   } else if (err.code === 'domain_already_in_use' || err.status === 409) {
     lines.push(['warn', 'Doména je přiřazená jinému projektu, než jsou tyhle dva. Odeber ji tam ve Vercelu ručně.'])
@@ -349,7 +351,8 @@ async function gui() {
     })()
 
     const actions = {
-      '/api/status': async () => {},
+      // Read inside the action, so a failure is explained in the log.
+      '/api/status': () => readStatus(),
       '/api/down': () => maintenance(input.pause === true),
       '/api/up': () => live(),
     }

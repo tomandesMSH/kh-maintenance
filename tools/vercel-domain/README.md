@@ -1,7 +1,7 @@
 # Přepínač domény: Muzio ↔ údržbová stránka
 
-`vercel-domain.mjs` přesouvá vlastní doménu mezi Vercel projekty `keyboardheromuzio` (produkce) a
-`kh-maintenance-six` (tahle údržbová stránka). Potřebuje jen Node 18+, žádné balíčky. Na web se
+`vercel-domain.mjs` přesouvá vlastní doménu mezi Vercel projekty `keyboardhero.muzio` (produkce) a
+`kh-maintenance` (tahle údržbová stránka). Potřebuje jen Node 18+, žádné balíčky. Na web se
 nenasazuje (`.vercelignore`), spouští se u tebe na počítači.
 
 ```bash
