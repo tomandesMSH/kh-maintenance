@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Přepínač domény</title>
+  <style>
+    /* Barvy jako údržbová stránka (index.html). */
+    :root {
+      --bg-main: #121316;
+      --bg-card: #1b1d22;
+      --bg-inset: #15161a;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --accent: #f25c43;
+      --accent-hover: #ff6b52;
+      --accent-tint: rgba(242, 92, 67, 0.14);
+      --text-primary: #f4f5f7;
+      --text-secondary: #9ca3af;
+      --green: #34c77b;
+      --green-tint: rgba(52, 199, 123, 0.14);
+      --amber: #f2b543;
+      --amber-tint: rgba(242, 181, 67, 0.14);
+      --red: #ef4444;
+      --red-tint: rgba(239, 68, 68, 0.14);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg-main: #f4f3f0;
+        --bg-card: #ffffff;
+        --bg-inset: #f7f6f3;
+        --border-subtle: rgba(0, 0, 0, 0.09);
+        --text-primary: #1b1d22;
+        --text-secondary: #6b7280;
+        --green: #15924f;
+        --amber: #b7790f;
+        --red: #c62828;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-main);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+    main { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 16px; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
+    h1 span { color: var(--accent); }
+    .domain { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: 13px; color: var(--text-secondary); }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
+
+    /* Stav */
+    .status-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+    .state { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; background: var(--text-secondary); }
+    .state[data-tone="green"] .dot { background: var(--green); box-shadow: 0 0 0 6px var(--green-tint); }
+    .state[data-tone="amber"] .dot { background: var(--amber); box-shadow: 0 0 0 6px var(--amber-tint); }
+    .state[data-tone="red"] .dot { background: var(--red); box-shadow: 0 0 0 6px var(--red-tint); }
+    .state-title { font-size: 18px; font-weight: 700; }
+    .state-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+    .chip { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--bg-inset); border: 1px solid var(--border-subtle); color: var(--text-secondary); }
+    .chip.amber { background: var(--amber-tint); color: var(--amber); border-color: transparent; }
+    .chip.green { background: var(--green-tint); color: var(--green); border-color: transparent; }
+
+    /* Tlačítka */
+    button { font: inherit; cursor: pointer; border: none; }
+    button:disabled { cursor: not-allowed; opacity: 0.45; }
+    button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .ghost {
+      background: transparent; color: var(--text-secondary); border: 1px solid var(--border-subtle);
+      padding: 7px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; flex-shrink: 0;
+    }
+    .ghost:hover:not(:disabled) { color: var(--text-primary); }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+    @media (max-width: 480px) { .actions { grid-template-columns: 1fr; } }
+    .action {
+      display: flex; flex-direction: column; gap: 4px; text-align: left;
+      padding: 16px; border-radius: 14px; border: 1px solid var(--border-subtle);
+      background: var(--bg-inset); color: var(--text-primary); transition: border-color .15s, background .15s;
+    }
+    .action:hover:not(:disabled) { border-color: var(--accent); }
+    .action strong { font-size: 15px; }
+    .action small { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+    .action.current { opacity: 0.6; }
+    .action.armed { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .action.armed small { color: rgba(255, 255, 255, 0.85); }
+    .check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+    .check input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+    /* Záznam */
+    .log {
+      margin-top: 10px; max-height: 300px; overflow-y: auto;
+      font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: 12.5px; line-height: 1.6;
+    }
+    .log .empty { color: var(--text-secondary); font-family: inherit; }
+    .log .run + .run { border-top: 1px dashed var(--border-subtle); margin-top: 8px; padding-top: 8px; }
+    .log p { white-space: pre-wrap; word-break: break-word; }
+    .log .title, .log .done { font-weight: 700; }
+    .log .ok, .log .done { color: var(--green); }
+    .log .warn { color: var(--amber); }
+    .log .fail { color: var(--red); }
+    .log .step { color: var(--text-primary); }
+    .log .http { color: var(--text-secondary); padding-left: 18px; }
+    .spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-subtle); border-top-color: var(--accent); animation: spin .8s linear infinite; display: none; }
+    .busy .spinner { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+    footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1><span>Muzio</span> · přepínač domény</h1>
+      <div class="domain">__DOMAIN__</div>
+    </header>
+
+    <section class="card" aria-labelledby="status-label">
+      <div class="label" id="status-label">Kde doména běží</div>
+      <div class="status-row">
+        <div class="state" id="state" data-tone="none" aria-live="polite">
+          <span class="dot" aria-hidden="true"></span>
+          <div>
+            <div class="state-title" id="state-title">Zjišťuji…</div>
+            <div class="state-sub" id="state-sub">&nbsp;</div>
+          </div>
+        </div>
+        <button class="ghost" id="refresh" type="button">↻ Obnovit</button>
+      </div>
+      <div class="chips" id="chips"></div>
+    </section>
+
+    <section class="card" aria-labelledby="actions-label">
+      <div class="label" id="actions-label">Přepnout</div>
+      <div class="actions">
+        <button class="action" id="down" type="button" data-label="🛠 Na údržbu">
+          <strong>🛠 Na údržbu</strong>
+          <small>Doména začne ukazovat stránku „Probíhá údržba“ (__MAINT__).</small>
+        </button>
+        <button class="action" id="up" type="button" data-label="🎵 Zpět na produkci">
+          <strong>🎵 Zpět na produkci</strong>
+          <small>Muzio znovu poběží na doméně (__PROD__). Pozastavený projekt nejdřív obnoví.</small>
+        </button>
+      </div>
+      <label class="check"><input type="checkbox" id="pause" /> Při přepnutí na údržbu produkci i pozastavit</label>
+    </section>
+
+    <section class="card" aria-labelledby="log-label">
+      <div class="label" id="log-label" style="display:flex;align-items:center;gap:8px">Průběh <span class="spinner" aria-hidden="true"></span></div>
+      <div class="log" id="log" aria-live="polite"><p class="empty">Zatím nic. Každá akce sem vypíše, co přesně udělala.</p></div>
+    </section>
+
+    <footer>
+      <span>Běží jen na tvém počítači · token zůstává v .env</span>
+      <button class="ghost" id="quit" type="button">Ukončit</button>
+    </footer>
+  </main>
+
+  <script>
+    const KEY = '__KEY__'
+    const PROD = '__PROD__'
+    const MAINT = '__MAINT__'
+    const $ = (id) => document.getElementById(id)
+    const buttons = ['down', 'up', 'refresh'].map($)
+    let current = null
+    let armed = null
+    let armTimer = 0
+
+    const STATES = {
+      prod: { tone: 'green', title: 'Muzio běží', sub: `Doména míří na produkci (${PROD}).` },
+      maint: { tone: 'amber', title: 'Údržba', sub: `Doména ukazuje údržbovou stránku (${MAINT}).` },
+      both: { tone: 'amber', title: 'Na obou projektech', sub: 'Nejasný stav – zvol, kam má doména patřit.' },
+      none: { tone: 'red', title: 'Doména nikde neběží', sub: 'Zvol, kam ji přiřadit.' },
+    }
+
+    function showStatus(status) {
+      const chips = $('chips')
+      chips.replaceChildren()
+      if (!status) {
+        $('state').dataset.tone = 'red'
+        $('state-title').textContent = 'Stav se nepodařilo zjistit'
+        $('state-sub').textContent = 'Podívej se do průběhu níž.'
+        return
+      }
+      current = status.where
+      const s = STATES[status.where]
+      $('state').dataset.tone = s.tone
+      $('state-title').textContent = s.title
+      $('state-sub').textContent = s.sub
+      const chip = (text, tone) => {
+        const el = document.createElement('span')
+        el.className = 'chip ' + (tone || '')
+        el.textContent = text
+        chips.append(el)
+      }
+      chip(status.paused ? `${PROD}: pozastavený` : `${PROD}: aktivní`, status.paused ? 'amber' : 'green')
+      for (const p of status.unverified) chip(`${p}: čeká na ověření DNS`, 'amber')
+      $('down').classList.toggle('current', status.where === 'maint')
+      $('up').classList.toggle('current', status.where === 'prod' && !status.paused)
+    }
+
+    function appendLog(entries) {
+      const log = $('log')
+      log.querySelector('.empty')?.remove()
+      const run = document.createElement('div')
+      run.className = 'run'
+      const icons = { step: '→ ', ok: '✓ ', warn: '! ', fail: '✗ ', done: '✓ ' }
+      for (const { kind, text } of entries) {
+        const p = document.createElement('p')
+        p.className = kind
+        p.textContent = (icons[kind] || '') + text
+        run.append(p)
+      }
+      if (run.childElementCount) {
+        log.prepend(run)
+        log.scrollTop = 0
+      }
+    }
+
+    function setBusy(busy) {
+      document.body.classList.toggle('busy', busy)
+      for (const b of buttons) b.disabled = busy
+    }
+
+    async function call(path, body) {
+      setBusy(true)
+      try {
+        const res = await fetch(path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Key': KEY },
+          body: JSON.stringify(body || {}),
+        })
+        if (!res.ok) throw new Error('HTTP ' + res.status)
+        const data = await res.json()
+        appendLog(data.log)
+        showStatus(data.status)
+      } catch (err) {
+        appendLog([{ kind: 'fail', text: 'Skript neodpovídá (' + err.message + '). Běží ještě v terminálu?' }])
+      } finally {
+        setBusy(false)
+      }
+    }
+
+    function disarm() {
+      clearTimeout(armTimer)
+      if (!armed) return
+      armed.classList.remove('armed')
+      armed.querySelector('strong').textContent = armed.dataset.label
+      armed = null
+    }
+
+    // Přepnutí potřebuje dvě kliknutí: první tlačítko „natáhne“, druhé potvrdí.
+    function confirmThen(button, action) {
+      if (armed === button) {
+        disarm()
+        action()
+        return
+      }
+      disarm()
+      armed = button
+      button.classList.add('armed')
+      button.querySelector('strong').textContent = 'Opravdu? Klikni znovu'
+      armTimer = setTimeout(disarm, 4000)
+    }
+
+    $('down').addEventListener('click', () => confirmThen($('down'), () => call('/api/down', { pause: $('pause').checked })))
+    $('up').addEventListener('click', () => confirmThen($('up'), () => call('/api/up')))
+    $('refresh').addEventListener('click', () => { disarm(); call('/api/status') })
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') disarm() })
+    $('quit').addEventListener('click', async () => {
+      try { await fetch('/api/quit', { method: 'POST', headers: { 'X-Key': KEY } }) } catch {}
+      document.querySelector('main').innerHTML = '<div class="card"><strong>Přepínač je ukončený.</strong><p class="state-sub">Okno můžeš zavřít. Znovu: node vercel-domain.mjs gui</p></div>'
+    })
+
+    call('/api/status')
+  </script>
+</body>
+</html>

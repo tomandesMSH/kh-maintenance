@@ -1,0 +1,3 @@
+# Přepínač domény se spouští lokálně, na web nepatří.
+tools/
+.gitignore
